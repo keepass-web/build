@@ -1,0 +1,10 @@
+{
+  "name": "@keepass-web/build-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pinned build toolchain for the keepass-web project build container.",
+  "dependencies": {
+    "@biomejs/biome": "2.5.0",
+    "typescript": "6.0.3"
+  }
+}
