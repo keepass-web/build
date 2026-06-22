@@ -1,0 +1,79 @@
+name: Release
+
+# Reusable publish workflow consumed by every keepass-web library repository.
+# Call it from a thin .github/workflows/release.yml in each library repo:
+#
+#   on:
+#     push:
+#       tags: ['v*']
+#   permissions: {}
+#   jobs:
+#     release:
+#       permissions:
+#         contents: read
+#         id-token: write
+#       uses: keepass-web/build/.github/workflows/release.yml@main
+#       secrets: inherit
+#
+# Publishing uses npm trusted publishing (OIDC): no NPM_TOKEN is stored, and
+# provenance is generated automatically. Configure each package's trusted
+# publisher on npmjs.com to match the CALLER repo + workflow file
+# (keepass-web/<repo> -> release.yml), not this reusable workflow.
+
+on:
+  workflow_call:
+
+# No permissions by default. The job below requests only what it needs.
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read        # checkout
+      id-token: write       # OIDC token for trusted publishing + provenance
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6
+        with:
+          node-version: '22.23.0'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing requires npm >= 11.5.1; Node 22.x ships npm 10.x.
+      # Pinned (not @latest) to keep the publish toolchain deterministic.
+      - name: Pin npm to a trusted-publishing-capable version
+        run: npm install -g npm@11.5.1
+
+      # Verify the integrity hash of every dependency before install.
+      - name: Install dependencies
+        run: npm ci
+
+      # Re-run the full check suite against the tagged commit before publishing.
+      - name: Lint and format (Biome)
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # Guard: refuse to publish if the tag and package.json disagree.
+      - name: Verify tag matches package version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' does not match package.json version '${version}'"
+            exit 1
+          fi
+
+      # No --provenance flag and no token: trusted publishing generates
+      # provenance automatically and authenticates via OIDC. Access level
+      # comes from publishConfig.access in each package.json.
+      - name: Publish to npm
+        run: npm publish
