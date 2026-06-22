@@ -15,20 +15,14 @@ required rules are defined in `ruleset/expected.json`.
 
 ## Setting up a new repository
 
-Rules are created manually once when a new repository is created. CI validates
-them continuously thereafter.
+Rules are created once when a new repository is created by importing
+`ruleset/ruleset.json` from this repo. CI validates them continuously
+thereafter.
 
-1. In the repository, go to **Settings → Rules → Rulesets**.
-2. Click **New ruleset → New branch ruleset**.
-3. Set **Ruleset name** to `main protection` (or similar).
-4. Set **Enforcement status** to **Active**.
-5. Under **Target branches**, add `refs/heads/main` (or the default branch name).
-6. Add the four required rules:
-   - **Restrict deletions**
-   - **Block force pushes**
-   - **Require a pull request before merging**
-   - **Require status checks to pass** — add the `pipeline` check and enable **Require branches to be up to date before merging**
-7. Click **Create**.
+1. In the new repository, go to **Settings → Rules → Rulesets**.
+2. Click **New ruleset → Import a ruleset**.
+3. Upload `ruleset/ruleset.json` from `keepass-web/build`.
+4. Confirm the name, enforcement status (Active), and target branch, then click **Create**.
 
 Once created, CI will validate the ruleset on every push and pull request. If
 the ruleset is removed or downgraded to a non-active state, CI fails
