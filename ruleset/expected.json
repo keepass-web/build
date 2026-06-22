@@ -4,6 +4,7 @@
     "deletion",
     "non_fast_forward",
     "pull_request",
+    "required_signatures",
     "required_status_checks"
   ]
 }

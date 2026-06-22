@@ -11,6 +11,7 @@ required rules are defined in `ruleset/expected.json`.
 | `deletion` | Prevents the default branch from being deleted |
 | `non_fast_forward` | Prevents force pushes to the default branch |
 | `pull_request` | Requires a pull request before merging; no direct pushes |
+| `required_signatures` | Requires all commits to be signed |
 | `required_status_checks` | Requires the CI pipeline job to pass before merging |
 
 ## Setting up a new repository
