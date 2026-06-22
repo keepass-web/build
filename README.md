@@ -13,5 +13,6 @@ All of our build infrastructure resides here so that there is a single, auditabl
 
 ## Docs
 
+- [Build philosophy and supply chain trust policy](PHILOSOPHY.md): the threat model and the reasoning behind every major design decision in this repo.
 - [Reproducing a build](REPRODUCING.md): how to independently reproduce a versioned distributable and verify its checksum. Also covers how to update a pinned dependency.
 - [Branch protection rulesets](RULESETS.md): what rules every keepass-web repository must have, and how to configure them when creating a new repo.
