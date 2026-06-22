@@ -62,6 +62,10 @@ jobs:
       - name: Test
         run: npm test
 
+      # Build compiled output (dist/) for publication.
+      - name: Build
+        run: npm run build
+
       # Guard: refuse to publish if the tag and package.json disagree.
       - name: Verify tag matches package version
         run: |
