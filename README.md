@@ -1,89 +1,17 @@
-# Build Instructions
+# keepass-web/build
 
-## Pinned dependencies
+Build infrastructure, CI pipeline, and reproducible build tooling for the KeePass Web project.
 
-All build-time dependencies are pinned with enforced integrity checks:
+All of our build infrastructure resides here so that there is a single, auditable location for verifying build correctness. Every build-time dependency is pinned at an exact version with a verified integrity hash — nothing installs without matching its recorded value. The build process is fully reproducible: any independent party can check out the same source, build using the same containerised environment, and confirm that the output matches the checksum published with the release. The inliner that produces each distributable is a purpose-written, minimal tool owned entirely by this project — no general-purpose bundler whose behaviour we do not fully control.
 
-- **npm packages** (`typescript`, `@biomejs/biome`): exact versions in
-  `package.json`; sha512 integrity hashes in `package-lock.json`. `npm ci`
-  verifies every hash before installation — no package installs without
-  matching its recorded hash.
+## What's in this repo
 
-- **Base container image**: pinned by digest in `Dockerfile`. Tags are
-  mutable; the digest is not. Docker verifies the digest at pull time.
+- A Docker-based build environment, with all dependencies pinned with verified integrity hashes.
+- A simple tool to builds a single HTML file by inlining its Javascript and CSS.
+- Reusable CI workflow, to be consumed by every keepass-web repository and ensure consistent builds.
+- Required branch protection policy to check in every keepass-web repository.
 
-To verify any npm package hash independently against the registry:
+## Docs
 
-```sh
-npm view <package>@<version> dist.integrity
-```
-
-To verify the base image digest independently:
-
-```sh
-docker buildx imagetools inspect node:22.23.0-slim --format '{{.Manifest.Digest}}'
-```
-
----
-
-## Reproducing a build
-
-Any party can reproduce a versioned distributable and verify it against the
-published checksum. The steps are:
-
-1. Check out the exact tagged commit of the application repo:
-
-   ```sh
-   git clone https://github.com/keepass-web/keepass-web
-   cd keepass-web
-   git checkout v<version>
-   ```
-
-2. Build the container image from this repo at the same tagged commit:
-
-   ```sh
-   git clone https://github.com/keepass-web/build
-   cd build
-   git checkout v<version>
-   docker build -t keepass-web-build .
-   ```
-
-3. Run the build inside the container:
-
-   ```sh
-   cd ../keepass-web
-   docker run --rm -v "$PWD":/workspace keepass-web-build \
-     sh -c "npm ci && node --experimental-strip-types build/inliner/src/index.ts build.json"
-   ```
-
-   The inliner prints `sha256:<hex>` to stdout.
-
-4. Compare the printed checksum against the value published with the release.
-
-Two independent builds of the same source commit must produce an identical
-checksum. A mismatch means the build is not reproducible and should be treated
-as suspect.
-
----
-
-## Updating a dependency
-
-Dependency updates require source-level review — the same rigour as source
-code changes.
-
-**npm package update:**
-
-1. Update the version in `package.json`.
-2. Regenerate `package-lock.json`: `npm install --package-lock-only`.
-3. Verify the new integrity hash against the registry: `npm view <package>@<version> dist.integrity`.
-4. Open a pull request. Review the diff to `package-lock.json` with the same
-   care as a source change.
-
-**Base image update:**
-
-1. Update the `FROM` line in `Dockerfile` with the new version tag and its digest.
-2. Verify the digest: `docker buildx imagetools inspect node:<version>-slim --format '{{.Manifest.Digest}}'`.
-3. Open a pull request.
-
-No dependency update is merged without a verified, reviewed change to the
-relevant pinning file (`package-lock.json` or `Dockerfile`).
+- [Reproducing a build](REPRODUCING.md): how to independently reproduce a versioned distributable and verify its checksum. Also covers how to update a pinned dependency.
+- [Branch protection rulesets](RULESETS.md): what rules every keepass-web repository must have, and how to configure them when creating a new repo.

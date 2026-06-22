@@ -1,0 +1,122 @@
+name: CI
+
+# Reusable workflow consumed by every keepass-web repository.
+# Call it from a thin .github/workflows/ci.yml in each repo:
+#
+#   on: [push, pull_request]
+#   jobs:
+#     ci:
+#       uses: keepass-web/build/.github/workflows/ci.yml@main
+#       with:
+#         app-repo: false   # set to true for keepass-web/keepass-web only
+#       secrets: inherit
+
+on:
+  workflow_call:
+    inputs:
+      app-repo:
+        description: >
+          Set to true for the keepass-web application repo. Enables the
+          build and checksum steps, which are not applicable to libraries.
+        type: boolean
+        default: false
+
+# No permissions by default. Each job declares only what it needs.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Step 1 — Ruleset check
+  # Validates that the default branch has all required protection rules active.
+  # Fails immediately if not. Blocks the pipeline job.
+  # ---------------------------------------------------------------------------
+  ruleset:
+    name: Ruleset check
+    runs-on: ubuntu-latest
+    permissions:
+      administration: write  # required to read ruleset configuration via gh
+    steps:
+      - name: Check out build repo
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          repository: keepass-web/build
+          path: build-tools
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: '22.23.0'
+
+      - name: Validate ruleset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node build-tools/ruleset/check.js
+
+  # ---------------------------------------------------------------------------
+  # Steps 2–6 — CI pipeline
+  # Runs only after the ruleset check passes.
+  # ---------------------------------------------------------------------------
+  pipeline:
+    name: Pipeline
+    needs: ruleset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      # Checked out into .build/ so the app repo's build script can reference
+      # the inliner at .build/inliner/src/index.ts. Only needed for app-repo builds.
+      - name: Check out build tools
+        if: inputs.app-repo
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          repository: keepass-web/build
+          path: .build
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: '22.23.0'
+
+      # Step 2 — Install dependencies
+      # npm ci verifies the sha512 integrity hash of every package before
+      # installation. Any tampering with package-lock.json causes this to fail.
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 3 — Lint and format
+      - name: Lint and format (Biome)
+        run: npm run lint
+
+      # Step 4 — Type check
+      - name: Type check
+        run: npm run typecheck
+
+      # Step 5 — Test suite
+      - name: Test
+        run: npm test
+
+      # Step 6 — Build distributable (application repo only)
+      # The build script invokes the inliner, which prints sha256:<hex> to stdout.
+      - name: Build distributable
+        if: inputs.app-repo
+        run: npm run build --silent > .checksum
+
+      # Step 7 — Checksum (application repo only)
+      # Surfaces the distributable checksum in the workflow summary. For tagged
+      # releases, this value is attached to the GitHub release as the published
+      # checksum that third parties verify against.
+      - name: Record checksum
+        if: inputs.app-repo
+        id: checksum
+        run: |
+          checksum=$(cat .checksum)
+          echo "checksum=${checksum}" >> "$GITHUB_OUTPUT"
+          printf '### Distributable checksum\n`%s`\n' "${checksum}" >> "$GITHUB_STEP_SUMMARY"
