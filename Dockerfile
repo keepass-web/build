@@ -6,9 +6,6 @@
 # All tools are installed at exact versions; npm ci verifies every package's
 # sha512 integrity hash from package-lock.json before any build step runs.
 #
-# Reproducibility: to verify this image independently, rebuild from source and
-# compare the resulting image digest against the published value in BUILDS.md.
-#
 # Base image: node:22.23.0-slim (Debian bookworm-slim, multi-arch)
 # Digest covers amd64 and arm64. Verify with:
 #   docker manifest inspect node:22.23.0-slim
