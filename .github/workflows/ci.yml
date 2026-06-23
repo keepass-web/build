@@ -118,5 +118,9 @@ jobs:
         id: checksum
         run: |
           checksum=$(cat .checksum)
-          echo "checksum=${checksum}" >> "$GITHUB_OUTPUT"
+          {
+            echo "checksum<<EOF"
+            echo "${checksum}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
           printf '### Distributable checksum\n`%s`\n' "${checksum}" >> "$GITHUB_STEP_SUMMARY"
