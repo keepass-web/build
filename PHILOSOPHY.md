@@ -117,3 +117,25 @@ We do not trust:
 - Mutable dependency references of any kind
 - Build-time network access beyond what is declared and verified
 - Automated tooling that bypasses the integrity verification and review process
+
+---
+
+## The hosted site is the release, verbatim
+
+Every file served from keepass-web.app is a verbatim copy of a file published
+in a GitHub release. No file is created, modified, or synthesised during
+deployment. A user who downloads the release and serves it locally — with Apache,
+nginx, or any other web server — has the same files, byte for byte, as the hosted
+site. The local experience and the hosted experience are identical, modulo
+features gated to the keepass-web.app domain (OAuth client IDs and the like).
+
+This is not a policy aspiration. It is enforced by the pipeline:
+
+1. The release workflow builds each distributable, computes its SHA-256 checksum,
+   and signs it with GitHub's build provenance attestation.
+2. The deploy workflow downloads each file from the release, verifies the
+   attestation, and commits it to gh-pages unchanged.
+3. Nothing is written to gh-pages that did not originate as a release artifact.
+
+The consequence is that trust established by auditing the downloaded files
+transfers directly to the hosted site — without qualification, without exception.
