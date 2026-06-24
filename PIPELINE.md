@@ -49,7 +49,7 @@ flowchart TD
         RREL["release.yml\nReusable npm publish"]
     end
 
-    subgraph libs["Library repos\nargon2 · chacha20 · kdbx"]
+    subgraph libs["Library repos: argon2 · chacha20 · kdbx"]
         LCI["ci.yml\nthin caller"]
         LREL["release.yml\nthin caller"]
     end
